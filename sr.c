@@ -114,6 +114,11 @@ void A_input(struct pkt packet) /*NEED TO CODE A WAY TO DEAL WITH DUPLICATE ACKS
 
     /*int ackcount;*/ /*count of the number of acks received*/
     int acknum;
+    float min_remaining;
+    float now;
+    int i;
+    float elapsed;
+    float remaining;
     /*ackcount = 0; */ /*initialize ack count*/
   /* if received ACK is not corrupted */ 
   if (!IsCorrupted(packet)) {
@@ -131,6 +136,20 @@ void A_input(struct pkt packet) /*NEED TO CODE A WAY TO DEAL WITH DUPLICATE ACKS
         timers[acknum] = MAX_TIME; /*stop timer for this packet*/
         ABase = (ABase + 1) % SEQSPACE;}} /*increment base*/
        /* ackcount++; }} increment ack count*/
+
+       stoptimer(A);
+       min_remaining = RTT;
+       now = get_sim_time();
+       for (i = 0; i < SEQSPACE; i++) {
+           if (!isAcked[i] && timers[i] != MAX_TIME) {
+               elapsed = now - timers[i];
+               remaining = RTT - elapsed;
+               if (remaining < min_remaining)
+                   min_remaining = remaining;
+           }
+       }
+       if (ABase != A_nextseqnum)
+           starttimer(A, min_remaining);
   else {
     if (TRACE > 0)
       printf ("----A: corrupted ACK is received, do nothing!\n");
@@ -139,19 +158,43 @@ void A_input(struct pkt packet) /*NEED TO CODE A WAY TO DEAL WITH DUPLICATE ACKS
 
 /* called when A's timer goes off */
 void A_timerinterrupt(void){ 
+    float now;
+    float min_remaining;
     int i;
     i = 0;
+
+    min_remaining = RTT;
+    now = get_sim_time();
     if (TRACE > 0){
     printf("----A: time out,resend packets!\n");
         for(i; i < SEQSPACE; i++){
-            if(!isAcked[i] && ((i-ABase + SEQSPACE)% SEQSPACE)<WINDOWSIZE){
-                printf ("---A: resending packet %d\n", (i));
-                tolayer3(A,buffer[i]);
-                starttimer(A,RTT);
+          if (!isAcked[i] && timers[i] != MAX_TIME) {
+            float elapsed = now - timers[i];
+            if (elapsed >= RTT) {
+                // timeout: resend
+                printf("----A: timeout for packet %d, resending\n", i);
+                tolayer3(A, buffer[i]);
+                timers[i] = now;  // reset its send time
+            } else {
+                float remaining = RTT - elapsed;
+                if (remaining < min_remaining)
+                min_remaining = remaining;
             }
         } 
     }
+}    // Restart timer if there are still packets outstanding
+bool has_unacked = false;
+for (int i = 0; i < SEQSPACE; i++) {
+    if (!isAcked[i] && timers[i] != MAX_TIME) {
+        has_unacked = true;
+        break;
+    }
 }
+
+if (has_unacked)
+    starttimer(A, min_remaining);
+}
+
 
 
 /* the following routine will be called once (only) before any other */

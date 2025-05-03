@@ -126,7 +126,7 @@ void A_input(struct pkt packet) /*NEED TO CODE A WAY TO DEAL WITH DUPLICATE ACKS
     acknum = packet.acknum;  /*get the ack number from the packet*/
     if(!isAcked[acknum]){
         isAcked[acknum] = true; /*mark packet as acked*/
-        timers[acknum] = MAX_TIME; /*stop timer for this packet*/
+        timers[ABase] = MAX_TIME; /*stop timer for this packet*/
         printf("----A: ACK %d is received, stop timer!\n", acknum);
     }else{if(TRACE>0){
         printf ("----A: duplicate ACK received, do nothing!\n");}
@@ -194,8 +194,6 @@ for (int i = 0; i < SEQSPACE; i++) {
 if (has_unacked)
     starttimer(A, min_remaining);
 }
-
-
 
 /* the following routine will be called once (only) before any other */
 /* entity A routines are called. You can use it to do any initialization */

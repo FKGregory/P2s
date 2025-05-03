@@ -27,6 +27,7 @@
 #define WINDOWSIZE 6    /* the maximum number of buffered unacked packet */
 #define SEQSPACE 2*WINDOWSIZE    /* the min sequence space for SR must be at least 2*windowsize */
 #define NOTINUSE (-1)   /* used to fill header fields that are not being used */
+#define MAX_TIME 1e9 /* crazy timer value to indicate timer not set*/
 
 /* generic procedure to compute the checksum of a packet.  Used by both sender and receiver  
    the simulator will overwrite part of your packet with 'z's.  It will not overwrite your 
@@ -63,6 +64,8 @@ static bool isAcked[SEQSPACE]; /*track whether packet has been acked*/
 /*static float timers[SEQSPACE]; make per packet timers*/
 static int ABase ;           /* the sequence number of the first packet in the window */
 static int A_nextseqnum;     /* the sequence number of the next packet to be sent */
+static float timers[SEQSPACE]; /* array of timers for each packet */
+
 
 /*Side A Output functionality*/
 void A_output(struct msg message){
@@ -77,9 +80,8 @@ void A_output(struct msg message){
     /* create packet */
     sendpkt.seqnum = A_nextseqnum;
     sendpkt.acknum = NOTINUSE;
-    for ( i=0; i<20 ; i++ ) 
-      sendpkt.payload[i] = message.data[i];
-    sendpkt.checksum = ComputeChecksum(sendpkt); 
+    memcpy(sendpkt.payload, message.data, 20);
+    sendpkt.checksum = ComputeChecksum(sendpkt);
 
     buffer[sendpkt.seqnum] = sendpkt; /* store packet in buffer*/
     isAcked[sendpkt.seqnum] = false; /*mark packet as not acked*/
@@ -89,6 +91,10 @@ void A_output(struct msg message){
     if (TRACE > 0)
       printf("Sending packet %d to layer 3\n", sendpkt.seqnum);
     tolayer3 (A, sendpkt);
+
+    if (ABase == A_nextseqnum) { /*start timer if first packet in window*/
+        starttimer(A,RTT);
+    };
 
     A_nextseqnum = (A_nextseqnum + 1) % SEQSPACE;  /*increment sequence number*/
   } else{
@@ -208,7 +214,7 @@ void B_init(void)
 {
   int i;
   expectedseqnum = 0;
-  
+
   for (i = 0; i < SEQSPACE; i++) {
     isAckedB[i] = false;   /*Mark all packets as not received*/
 }}

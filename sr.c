@@ -111,24 +111,26 @@ void A_output(struct msg message){
 */
 void A_input(struct pkt packet) /*NEED TO CODE A WAY TO DEAL WITH DUPLICATE ACKS*/
 {
-    int ackcount;
+
+    /*int ackcount;*/ /*count of the number of acks received*/
     int acknum;
-    ackcount = 0; /*initialize ack count*/
+    /*ackcount = 0; */ /*initialize ack count*/
   /* if received ACK is not corrupted */ 
   if (!IsCorrupted(packet)) {
     printf("----A: uncorrupted ACK %d is received\n",packet.acknum);
     acknum = packet.acknum;  /*get the ack number from the packet*/
     if(!isAcked[acknum]){
         isAcked[acknum] = true; /*mark packet as acked*/
-        stoptimer(A); /*stop timer for this packet*/
+        timers[acknum] = MAX_TIME; /*stop timer for this packet*/
         printf("----A: ACK %d is received, stop timer!\n", acknum);
     }else{if(TRACE>0){
         printf ("----A: duplicate ACK received, do nothing!\n");}
     }
     while(isAcked[ABase]){ /* check if the base packet is acked*/
         isAcked[ABase] = false; /*mark packet as not acked*/
-        ABase = (ABase + 1) % SEQSPACE; /*increment base*/
-        ackcount++; }} /*increment ack count*/
+        timers[acknum] = MAX_TIME; /*stop timer for this packet*/
+        ABase = (ABase + 1) % SEQSPACE;}} /*increment base*/
+       /* ackcount++; }} increment ack count*/
   else {
     if (TRACE > 0)
       printf ("----A: corrupted ACK is received, do nothing!\n");

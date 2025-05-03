@@ -60,7 +60,7 @@ bool IsCorrupted(struct pkt packet) /*unchanged*/
 
 static struct pkt buffer[SEQSPACE];  /* array for storing packets waiting for ACK */
 static bool isAcked[SEQSPACE]; /*track whether packet has been acked*/
-/*static float timers[SEQSPACE]; /*make per packet timers*/
+/*static float timers[SEQSPACE]; make per packet timers*/
 static int ABase ;           /* the sequence number of the first packet in the window */
 static int A_nextseqnum;     /* the sequence number of the next packet to be sent */
 
@@ -206,8 +206,9 @@ void B_input(struct pkt packet)
 /* entity B routines are called. You can use it to do any initialization */
 void B_init(void)
 {
-  expectedseqnum = 0;
   int i;
+  expectedseqnum = 0;
+  
   for (i = 0; i < SEQSPACE; i++) {
     isAckedB[i] = false;   /*Mark all packets as not received*/
 }}

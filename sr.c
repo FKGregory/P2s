@@ -119,7 +119,7 @@ void A_input(struct pkt packet)
     if (TRACE > 0)
       printf("----A: uncorrupted ACK %d is received\n",packet.acknum);
     total_ACKs_received++;
-    stoptimer(timers[packet.seqnum]);
+    stoptimer(A);
 
     /*check in window*/
     if(((packet.acknum - windowfirst + SEQSPACE) % SEQSPACE) < WINDOWSIZE){
@@ -168,7 +168,7 @@ void A_timerinterrupt(void)
 /* the following routine will be called once (only) before any other */
 /* entity A routines are called. You can use it to do any initialization */
 void A_init(void)
-{
+{ int i;
   /* initialise A's window, buffer and sequence number */
   A_nextseqnum = 0;  /* A starts with seq num 0, do not change this */
   windowfirst = 0;
@@ -179,17 +179,13 @@ void A_init(void)
   windowcount = 0;
   total_ACKs_received = 0;
   new_ACKs = 0;
-      for (int i = 0; i < SEQSPACE; i++) {
-        isAcked[i] = true;         // Everything starts as ACKed (so we can send it)
-        timers[i] = NOTINUSE;    // All timers inactive initially
+      for (i = 0; i < SEQSPACE; i++) {
+        isAcked[i] = true;         /*start things acked*/
+        timers[i] = NOTINUSE;    /*start timers off*/
     }
 }
 
 /********* Receiver (B)  variables and procedures ************/
-
-static int expectedseqnum; /* the sequence number expected next by the receiver */
-static int B_nextseqnum;   /* the sequence number for the next packets sent by B */
-
 
 /* called from layer 3, when a packet arrives for layer 4 at B*/
 void B_input(struct pkt packet)
@@ -198,7 +194,7 @@ void B_input(struct pkt packet)
   int i;
 
   /* if not corrupted and received packet is in order */
-  if  ( (!IsCorrupted(packet))  && ((packet.acknum - windowfirst + SEQSPACE) % SEQSPACE) < WINDOWSIZE)  {
+  if  ( (!IsCorrupted(packet))  && ((packet.seqnum - windowfirst + SEQSPACE) % SEQSPACE) < WINDOWSIZE)  {
     if(isAcked[packet.acknum] == false){
       isAcked[packet.acknum] = true; /*mark packet as acked*/
       if (TRACE > 0)

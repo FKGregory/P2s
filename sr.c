@@ -4,6 +4,8 @@
 #include "emulator.h"
 #include "gbn.h"
 #include <string.h>
+extern float get_sim_time(void);
+
 
 /* ******************************************************************
    Go Back N protocol.  Adapted from J.F.Kurose
@@ -70,7 +72,6 @@ static float timers[SEQSPACE]; /* array of timers for each packet */
 /*Side A Output functionality*/
 void A_output(struct msg message){
     struct pkt sendpkt;
-    int i;
   /* if not blocked waiting on ACK */
   if (((A_nextseqnum - ABase + SEQSPACE) % SEQSPACE) < WINDOWSIZE){
 
@@ -85,7 +86,6 @@ void A_output(struct msg message){
 
     buffer[sendpkt.seqnum] = sendpkt; /* store packet in buffer*/
     isAcked[sendpkt.seqnum] = false; /*mark packet as not acked*/
-    starttimer(A,RTT); /*start timer per packet*/
 
     /* send out packet */
     if (TRACE > 0)
@@ -158,23 +158,23 @@ void A_input(struct pkt packet) /*NEED TO CODE A WAY TO DEAL WITH DUPLICATE ACKS
 
 /* called when A's timer goes off */
 void A_timerinterrupt(void){ 
+    bool has_unacked;
     float now;
     float min_remaining;
     int i;
-    i = 0;
 
     min_remaining = RTT;
     now = get_sim_time();
     if (TRACE > 0){
     printf("----A: time out,resend packets!\n");
-        for(i; i < SEQSPACE; i++){
+        for(i = 0; i < SEQSPACE; i++){
           if (!isAcked[i] && timers[i] != MAX_TIME) {
             float elapsed = now - timers[i];
             if (elapsed >= RTT) {
-                // timeout: resend
+                /* timeout has occurred, rfesend packet */
                 printf("----A: timeout for packet %d, resending\n", i);
                 tolayer3(A, buffer[i]);
-                timers[i] = now;  // reset its send time
+                timers[i] = now;  /* reset send time*/
             } else {
                 float remaining = RTT - elapsed;
                 if (remaining < min_remaining)
@@ -182,9 +182,9 @@ void A_timerinterrupt(void){
             }
         } 
     }
-}    // Restart timer if there are still packets outstanding
-bool has_unacked = false;
-for (int i = 0; i < SEQSPACE; i++) {
+}    /* restart timer if outstanding packets exist*/
+has_unacked = false;
+for (i = 0; i < SEQSPACE; i++) {
     if (!isAcked[i] && timers[i] != MAX_TIME) {
         has_unacked = true;
         break;

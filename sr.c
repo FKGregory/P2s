@@ -194,6 +194,7 @@ void A_init(void)
   A_nextseqnum = 0; /*set next seq num to 0*/
     for (i = 0; i < SEQSPACE; i++){
         isAcked[i] = false; /*mark all packets as not acked*/
+        timers[i] = MAX_TIME; /*set all timers to max time*/
     }
 }
 

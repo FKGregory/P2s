@@ -158,13 +158,10 @@ void A_input(struct pkt packet) /*NEED TO CODE A WAY TO DEAL WITH DUPLICATE ACKS
 
 
 /* called when A's timer goes off */
-void A_timerinterrupt(struct pkt packet){ 
+void A_timerinterrupt(void){ 
     bool has_unacked;
     float min_remaining;
     int i;
-    int seq;
-    
-    seq = packet.seqnum;
 
     has_unacked = false;
     min_remaining = RTT;
@@ -176,7 +173,7 @@ void A_timerinterrupt(struct pkt packet){
             timers[i] -= RTT;
             if (timers[i] <= 0) {
                 if (TRACE > 0){
-                  printf("---A: resending packet %d\n", buffer[seq].seqnum);}
+                  printfprintf("---A: resending packet %d\n", buffer[i].seqnum);}
                 tolayer3(A, buffer[i]);
                 timers[i] = RTT; 
             }

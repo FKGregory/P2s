@@ -119,19 +119,18 @@ void A_input(struct pkt packet) /*NEED TO CODE A WAY TO DEAL WITH DUPLICATE ACKS
   /* if received ACK is not corrupted */ 
   if (!IsCorrupted(packet)) {
     if (TRACE > 0)
-     printf("----A: uncorrupted ACK %d is received\n",packet.acknum);
+    printf("----A: uncorrupted ACK %d is received\n",packet.acknum);
     acknum = packet.acknum;  /*get the ack number from the packet*/
 
     if(!isAcked[acknum]){
         isAcked[acknum] = true; /*mark packet as acked*/
         timers[acknum] = MAX_TIME; /*stop timer for this packet*/
         if(TRACE > 0){
-          printf("----A: ACK %d is not a duplicate\n",packet.acknum);
+          printf("----A: ACK %d is not a duplicate\n",packet.acknum);}
         }
 
     }else{if(TRACE>0){
-      printf ("----A: duplicate ACK received, do nothing!\n");}
-    }
+      printf ("----A: corrupted ACK is received, do nothing!\n");}
     while(isAcked[ABase]){ /* check if the base packet is acked*/
       ABase = (ABase + 1) % SEQSPACE;
     }
@@ -149,10 +148,6 @@ void A_input(struct pkt packet) /*NEED TO CODE A WAY TO DEAL WITH DUPLICATE ACKS
 
       if (has_unacked){
         starttimer(A, min_remaining);}
-
-      }else {
-    if (TRACE > 0)
-    printf ("----A: corrupted ACK is received, do nothing!\n");
   }
 }
 

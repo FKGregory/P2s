@@ -167,11 +167,23 @@ void A_timerinterrupt(void){
     printf("----A: time out,resend packets!\n");
         for(i = 0; i < SEQSPACE; i++){
           if (!isAcked[i] && timers[i] != MAX_TIME) {
-            tolayer3(A, buffer[i]);
-            timers[i] = RTT;
-            has_unacked = true;
+            timers[i] -= RTT;
+            if (timers[i] <= 0) {
+                if (TRACE > 0){
+                    printf("----A: Packet %d timeout, retransmitting\n", i);}
+                tolayer3(A, buffer[i]);
+                timers[i] = RTT; 
+            }
           }
-      } 
+      } stoptimer(A);
+      for (i = 0; i < SEQSPACE; i++) {
+          if (!isAcked[i] && timers[i] != MAX_TIME) {
+              if (timers[i] < min_remaining) {
+                  min_remaining = timers[i];
+                  has_unacked = true;
+              }
+          }
+        }
   if (has_unacked){
     starttimer(A, min_remaining);}
 }};

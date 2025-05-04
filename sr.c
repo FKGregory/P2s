@@ -201,10 +201,9 @@ void A_init(void)
 {
 
     int i;
-    i = 0;
   ABase = 0; /*set first seq num to 0*/
   A_nextseqnum = 0; /*set next seq num to 0*/
-    for (i ; i < SEQSPACE; i++){
+    for (i = 0; i < SEQSPACE; i++){
         isAcked[i] = false; /*mark all packets as not acked*/
     }
 }

@@ -71,7 +71,6 @@ static float timers[SEQSPACE]; /* array of timers for each packet */
 /*Side A Output functionality*/
 void A_output(struct msg message){
     struct pkt sendpkt;
-    timers[sendpkt.seqnum] = RTT;
   /* if not blocked waiting on ACK */
   if (((A_nextseqnum - ABase + SEQSPACE) % SEQSPACE) < WINDOWSIZE){
 
@@ -80,6 +79,7 @@ void A_output(struct msg message){
 
     /* create packet */
     sendpkt.seqnum = A_nextseqnum;
+    timers[sendpkt.seqnum] = RTT;
     sendpkt.acknum = NOTINUSE;
     memcpy(sendpkt.payload, message.data, 20);
     sendpkt.checksum = ComputeChecksum(sendpkt);
@@ -116,10 +116,7 @@ void A_input(struct pkt packet) /*NEED TO CODE A WAY TO DEAL WITH DUPLICATE ACKS
     bool has_unacked;
     int acknum;
     float min_remaining;
-    float now;
     int i;
-    float elapsed;
-    float remaining;
     /*ackcount = 0; */ /*initialize ack count*/
   /* if received ACK is not corrupted */ 
   if (!IsCorrupted(packet)) {
@@ -143,9 +140,9 @@ void A_input(struct pkt packet) /*NEED TO CODE A WAY TO DEAL WITH DUPLICATE ACKS
        has_unacked = false;
        for (i = 0; i < SEQSPACE; i++) {
            if (!isAcked[i] && timers[i] != MAX_TIME) {
-            if (timers[i] < min_remaining)
+            if (timers[i] < min_remaining){
               min_remaining = timers[i];
-              has_unacked = true;
+              has_unacked = true;}
            }
        }
        if (has_unacked)
@@ -161,7 +158,8 @@ void A_timerinterrupt(void){
     bool has_unacked;
     float min_remaining;
     int i;
-
+    
+    has_unacked = false;
     min_remaining = RTT;
 
     if (TRACE > 0){
@@ -169,16 +167,16 @@ void A_timerinterrupt(void){
         for(i = 0; i < SEQSPACE; i++){
           if (!isAcked[i] && timers[i] != MAX_TIME) {
             timers[i] -= RTT;
-            if (timers[i] <= 0) {
+            if (timers[i] <= 0){
                 /* timeout has occurred, rfesend packet */
                 printf("----A: timeout for packet %d, resending\n", i);
                 tolayer3(A, buffer[i]);
                 timers[i] = RTT;  /* reset tiemr time*/
             } else {
   
-                if (timers[i] < min_remaining)
+                if (timers[i] < min_remaining){
                 min_remaining = timers[i];
-                has_unacked = true;
+                has_unacked = true;}
             }
         } 
     }

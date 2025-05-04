@@ -62,6 +62,7 @@ static int windowfirst, windowlast;    /* array indexes of the first/last packet
 static int windowcount;                /* the number of packets currently awaiting an ACK */
 static int A_nextseqnum;               /* the next sequence number to be used by the sender */
 static float timers[SEQSPACE];         /* array of timers for each packet */
+static int isAcked[SEQSPACE];          /*track whether packet has been acked*/
 
 /* called from layer 5 (application layer), passed the message to be sent to other side */
 void A_output(struct msg message)
@@ -80,41 +81,18 @@ void A_output(struct msg message)
       sendpkt.payload[i] = message.data[i];
     sendpkt.checksum = ComputeChecksum(sendpkt);
 
-
-
-  }
-
-
-
-
-
-
-
-
-
-
-  
-    /* create packet */
-    sendpkt.seqnum = A_nextseqnum;
-    sendpkt.acknum = NOTINUSE;
-    for ( i=0; i<20 ; i++ )
-      sendpkt.payload[i] = message.data[i];
-    sendpkt.checksum = ComputeChecksum(sendpkt);
-
-    /* put packet in window buffer */
-    /* windowlast will always be 0 for alternating bit; but not for GoBackN */
-    windowlast = (windowlast + 1) % WINDOWSIZE;
-    buffer[windowlast] = sendpkt;
-    windowcount++;
+    timers[sendpkt.seqnum] = RTT;
+    buffer[sendpkt.seqnum] = sendpkt; /* store packet in buffer*/
+    isAcked[sendpkt.seqnum] = false; /*mark packet as not acked*/
 
     /* send out packet */
     if (TRACE > 0)
       printf("Sending packet %d to layer 3\n", sendpkt.seqnum);
     tolayer3 (A, sendpkt);
 
-    /* start timer if first packet in window */
-    if (windowcount == 1)
+    if (windowfirst == A_nextseqnum) { /*start timer if first packet in window*/
       starttimer(A,RTT);
+  };
 
     /* get next sequence number, wrap back to 0 */
     A_nextseqnum = (A_nextseqnum + 1) % SEQSPACE;

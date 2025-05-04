@@ -192,7 +192,8 @@ void A_timerinterrupt(struct pkt packet){
         }
   if (has_unacked){
     starttimer(A, min_remaining);}
-}};
+}
+}
 
 /* the following routine will be called once (only) before any other */
 /* entity A routines are called. You can use it to do any initialization */

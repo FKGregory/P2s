@@ -4,7 +4,6 @@
 #include "emulator.h"
 #include "gbn.h"
 #include <string.h>
-extern float get_sim_time(void);
 
 
 /* ******************************************************************
@@ -72,6 +71,7 @@ static float timers[SEQSPACE]; /* array of timers for each packet */
 /*Side A Output functionality*/
 void A_output(struct msg message){
     struct pkt sendpkt;
+    timers[sendpkt.seqnum] = RTT;
   /* if not blocked waiting on ACK */
   if (((A_nextseqnum - ABase + SEQSPACE) % SEQSPACE) < WINDOWSIZE){
 
@@ -159,39 +159,31 @@ void A_input(struct pkt packet) /*NEED TO CODE A WAY TO DEAL WITH DUPLICATE ACKS
 /* called when A's timer goes off */
 void A_timerinterrupt(void){ 
     bool has_unacked;
-    float now;
     float min_remaining;
     int i;
 
     min_remaining = RTT;
-    now = get_sim_time();
+
     if (TRACE > 0){
     printf("----A: time out,resend packets!\n");
         for(i = 0; i < SEQSPACE; i++){
           if (!isAcked[i] && timers[i] != MAX_TIME) {
-            float elapsed = now - timers[i];
-            if (elapsed >= RTT) {
+            timers[i] -= RTT;
+            if (timers[i] <= 0) {
                 /* timeout has occurred, rfesend packet */
                 printf("----A: timeout for packet %d, resending\n", i);
                 tolayer3(A, buffer[i]);
-                timers[i] = now;  /* reset send time*/
+                timers[i] = RTT;  /* reset tiemr time*/
             } else {
-                float remaining = RTT - elapsed;
-                if (remaining < min_remaining)
-                min_remaining = remaining;
+  
+                if (timers[i] < min_remaining)
+                min_remaining = timers[i];
+                has_unacked = true;
             }
         } 
     }
 }    /* restart timer if outstanding packets exist*/
-has_unacked = false;
-for (i = 0; i < SEQSPACE; i++) {
-    if (!isAcked[i] && timers[i] != MAX_TIME) {
-        has_unacked = true;
-        break;
-    }
-}
-
-if (has_unacked)
+  if (has_unacked)
     starttimer(A, min_remaining);
 }
 

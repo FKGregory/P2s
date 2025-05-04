@@ -240,7 +240,8 @@ void B_init(void)
   expectedseqnum = 0;
 
   for (i = 0; i < SEQSPACE; i++) {
-    isAckedB[i] = false;   /*Mark all packets as not received*/
+    isAckedB[i] = false;  /*Mark all packets as not received*/
+    memset(&bufferB[i], 0, sizeof(struct pkt)); /*init buffer b*/
 }}
 
 /******************************************************************************

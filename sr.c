@@ -79,11 +79,10 @@ void A_output(struct msg message){
 
     /* create packet */
     sendpkt.seqnum = A_nextseqnum;
-    timers[sendpkt.seqnum] = RTT;
     sendpkt.acknum = NOTINUSE;
     memcpy(sendpkt.payload, message.data, 20);
     sendpkt.checksum = ComputeChecksum(sendpkt);
-
+    timers[sendpkt.seqnum] = RTT;
     buffer[sendpkt.seqnum] = sendpkt; /* store packet in buffer*/
     isAcked[sendpkt.seqnum] = false; /*mark packet as not acked*/
 
@@ -158,7 +157,7 @@ void A_timerinterrupt(void){
     bool has_unacked;
     float min_remaining;
     int i;
-    
+
     has_unacked = false;
     min_remaining = RTT;
 

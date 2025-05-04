@@ -58,11 +58,13 @@ bool IsCorrupted(struct pkt packet)
 /********* Sender (A) variables and functions ************/
 
 static struct pkt buffer[WINDOWSIZE];  /* array for storing packets waiting for ACK */
+static struct pkt bufferB [WINDOWSIZE];  /* array for storing packets waiting for ACK */
 static int windowfirst, windowlast;    /* array indexes of the first/last packet awaiting ACK */
 static int windowcount;                /* the number of packets currently awaiting an ACK */
 static int A_nextseqnum;               /* the next sequence number to be used by the sender */
 static float timers[SEQSPACE];         /* array of timers for each packet */
 static int isAcked[SEQSPACE];          /*track whether packet has been acked*/
+static bool recieved[SEQSPACE];         /*track whether packet has been received*/
 
 /* called from layer 5 (application layer), passed the message to be sent to other side */
 void A_output(struct msg message)
@@ -147,14 +149,17 @@ void A_timerinterrupt(void)
   if (TRACE > 0)
     printf("----A: time out,resend packets!\n");
 
-  for(i=0; i<windowcount; i++) {
-
-    if (TRACE > 0)
-      printf ("---A: resending packet %d\n", (buffer[(windowfirst+i) % WINDOWSIZE]).seqnum);
-
-    tolayer3(A,buffer[(windowfirst+i) % WINDOWSIZE]);
-    packets_resent++;
-    if (i==0) starttimer(A,RTT);
+  for(i=0; i<SEQSPACE; i++) {
+    if(isAcked[i] == false && timers[i] != NOTINUSE){
+      timers[i] -= RTT;
+      if (timers[i] <= 0) {
+        if (TRACE > 0)
+          printf ("---A: resending packet %d\n", buffer[i].seqnum);
+        tolayer3(A, buffer[i]);
+        packets_resent++;
+        timers[i] = RTT; 
+      }
+    }
   }
 }
 
@@ -172,9 +177,13 @@ void A_init(void)
 		     so initially this is set to -1
 		   */
   windowcount = 0;
+  total_ACKs_received = 0;
+  new_ACKs = 0;
+      for (int i = 0; i < SEQSPACE; i++) {
+        isAcked[i] = true;         // Everything starts as ACKed (so we can send it)
+        timers[i] = NOTINUSE;    // All timers inactive initially
+    }
 }
-
-
 
 /********* Receiver (B)  variables and procedures ************/
 
@@ -189,33 +198,33 @@ void B_input(struct pkt packet)
   int i;
 
   /* if not corrupted and received packet is in order */
-  if  ( (!IsCorrupted(packet))  && (packet.seqnum == expectedseqnum) ) {
-    if (TRACE > 0)
+  if  ( (!IsCorrupted(packet))  && ((packet.acknum - windowfirst + SEQSPACE) % SEQSPACE) < WINDOWSIZE)  {
+    if(isAcked[packet.acknum] == false){
+      isAcked[packet.acknum] = true; /*mark packet as acked*/
+      if (TRACE > 0)
       printf("----B: packet %d is correctly received, send ACK!\n",packet.seqnum);
-    packets_received++;
 
-    /* deliver to receiving application */
-    tolayer5(B, packet.payload);
+      bufferB[packet.seqnum] = packet; /* store packet in buffer*/
+      recieved[packet.seqnum] = true; /*mark packet as received*/
 
-    /* send an ACK for the received packet */
-    sendpkt.acknum = expectedseqnum;
+      packets_received++;
+      new_ACKs++;
 
-    /* update state variables */
-    expectedseqnum = (expectedseqnum + 1) % SEQSPACE;
+      /* deliver to receiving application */
+      tolayer5(B, packet.payload);
+
+      /* send an ACK for the received packet */
+      sendpkt.acknum = packet.seqnum;
+    }
   }
   else {
     /* packet is corrupted or out of order resend last ACK */
     if (TRACE > 0)
       printf("----B: packet corrupted or not expected sequence number, resend ACK!\n");
-    if (expectedseqnum == 0)
-      sendpkt.acknum = SEQSPACE - 1;
-    else
-      sendpkt.acknum = expectedseqnum - 1;
   }
 
   /* create packet */
-  sendpkt.seqnum = B_nextseqnum;
-  B_nextseqnum = (B_nextseqnum + 1) % 2;
+  sendpkt.acknum = packet.seqnum;
 
   /* we don't have any data to send.  fill payload with 0's */
   for ( i=0; i<20 ; i++ )
@@ -232,8 +241,10 @@ void B_input(struct pkt packet)
 /* entity B routines are called. You can use it to do any initialization */
 void B_init(void)
 {
-  expectedseqnum = 0;
-  B_nextseqnum = 1;
+  int i;
+  for (i = 0; i < SEQSPACE; i++) {
+      recieved[i] = false;
+  }
 }
 
 /******************************************************************************

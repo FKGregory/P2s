@@ -204,7 +204,6 @@ void B_input(struct pkt packet)
       recieved[packet.seqnum] = true; /*mark packet as received*/
 
       packets_received++;
-      new_ACKs++;
 
       /* deliver to receiving application */
       tolayer5(B, packet.payload);

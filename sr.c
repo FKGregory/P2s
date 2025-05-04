@@ -167,21 +167,11 @@ void A_timerinterrupt(void){
     printf("----A: time out,resend packets!\n");
         for(i = 0; i < SEQSPACE; i++){
           if (!isAcked[i] && timers[i] != MAX_TIME) {
-            timers[i] -= RTT;
-            if (timers[i] <= 0){
-                /* timeout has occurred, rfesend packet */
-                printf("----A: timeout for packet %d, resending\n", i);
-                tolayer3(A, buffer[i]);
-                timers[i] = RTT;  /* reset tiemr time*/
-            } else {
-  
-                if (timers[i] < min_remaining){
-                min_remaining = timers[i];
-                has_unacked = true;}
-            }
-        } 
-    }
-}    /* restart timer if outstanding packets exist*/
+            tolayer3(A, buffer[i]);
+            timers[i] = RTT;
+            has_unacked = true;
+          }
+      } 
   if (has_unacked)
     starttimer(A, min_remaining);
 }

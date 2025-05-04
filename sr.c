@@ -110,13 +110,11 @@ void A_output(struct msg message){
 */
 void A_input(struct pkt packet) /*NEED TO CODE A WAY TO DEAL WITH DUPLICATE ACKS*/
 {
-
-    /*int ackcount;*/ /*count of the number of acks received*/
     bool has_unacked;
     int acknum;
     float min_remaining;
     int i;
-    /*ackcount = 0; */ /*initialize ack count*/
+
   /* if received ACK is not corrupted */ 
   if (!IsCorrupted(packet)) {
     printf("----A: uncorrupted ACK %d is received\n",packet.acknum);
@@ -129,28 +127,32 @@ void A_input(struct pkt packet) /*NEED TO CODE A WAY TO DEAL WITH DUPLICATE ACKS
         printf ("----A: duplicate ACK received, do nothing!\n");}
     }
     while(isAcked[ABase]){ /* check if the base packet is acked*/
-        isAcked[ABase] = false; /*mark packet as not acked*/
-        timers[ABase] = MAX_TIME; /*stop timer for this packet*/
-        ABase = (ABase + 1) % SEQSPACE;}} /*increment base*/
-       /* ackcount++; }} increment ack count*/
+      isAcked[ABase] = false; /*mark packet as not acked*/
+      timers[ABase] = MAX_TIME; /*stop timer for this packet*/
+      ABase = (ABase + 1) % SEQSPACE;/*increment base*/
+    }
 
-       stoptimer(A);
-       min_remaining = RTT;
-       has_unacked = false;
-       for (i = 0; i < SEQSPACE; i++) {
+        stoptimer(A);
+        min_remaining = RTT;
+        has_unacked = false;
+        for (i = 0; i < SEQSPACE; i++) {
            if (!isAcked[i] && timers[i] != MAX_TIME) {
             if (timers[i] < min_remaining){
               min_remaining = timers[i];
-              has_unacked = true;}
-           }
+              has_unacked = true;
+            }
+          }
        }
-       if (has_unacked)
-       starttimer(A, min_remaining);
-  else {
+  
+
+      if (has_unacked){
+        starttimer(A, min_remaining);}
+      }else {
     if (TRACE > 0)
       printf ("----A: corrupted ACK is received, do nothing!\n");
   }
 }
+
 
 /* called when A's timer goes off */
 void A_timerinterrupt(void){ 

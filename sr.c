@@ -80,6 +80,7 @@ void A_output(struct msg message){
     /* create packet */
     sendpkt.seqnum = A_nextseqnum;
     sendpkt.acknum = NOTINUSE;
+    memset(sendpkt.payload, 0, sizeof(sendpkt.payload));  /* Clear payload*/
     memcpy(sendpkt.payload, message.data, 20);
     sendpkt.checksum = ComputeChecksum(sendpkt);
     timers[sendpkt.seqnum] = RTT;
@@ -172,16 +173,15 @@ void A_timerinterrupt(void){
             has_unacked = true;
           }
       } 
-  if (has_unacked)
-    starttimer(A, min_remaining);
-}
+  if (has_unacked){
+    starttimer(A, min_remaining);}
+}};
 
 /* the following routine will be called once (only) before any other */
 /* entity A routines are called. You can use it to do any initialization */
 void A_init(void)
 {
-
-    int i;
+   int i;
   ABase = 0; /*set first seq num to 0*/
   A_nextseqnum = 0; /*set next seq num to 0*/
     for (i = 0; i < SEQSPACE; i++){

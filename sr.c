@@ -88,11 +88,8 @@ void A_output(struct msg message)
     timers[sendpkt.seqnum] = RTT;
 
     /* get next sequence number, wrap back to 0 */
-    printf("Anext seq num %d\n", A_nextseqnum);
 
     A_nextseqnum = (A_nextseqnum + 1) % SEQSPACE;
-    printf("seqspace \n", SEQSPACE);
-    printf("Anext seq num  inced %d\n", A_nextseqnum);
 
 
 

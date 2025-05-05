@@ -166,7 +166,7 @@ void A_timerinterrupt(void)
       timers[i] -= RTT;
       if (timers[i] <= 0) {
         if (TRACE > 0)
-          printf ("---A: resending packet %d\n", (buffer[(windowfirst+i) % WINDOWSIZE]).seqnum);
+          printf ("---A: resending packet %d\n", buffer[i].seqnum);
         tolayer3(A, buffer[i]);
         packets_resent++;
         timers[i] = RTT; 

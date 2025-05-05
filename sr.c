@@ -27,7 +27,7 @@
                           MUST BE SET TO 6 when submitting assignment */
 #define SEQSPACE 12      /* the min sequence space for GBN must be at least windowsize + 1 */
 #define NOTINUSE (-1)   /* used to fill header fields that are not being used */
-#define MAX_WINDOWFULL 100
+#define MAX_WINDOWFULL 1000
 
 /* generic procedure to compute the checksum of a packet.  Used by both sender and receiver
    the simulator will overwrite part of your packet with 'z's.  It will not overwrite your
@@ -102,10 +102,11 @@ void A_output(struct msg message)
     if (TRACE > 0)
       printf("Sending packet %d to layer 3\n", sendpkt.seqnum);
     tolayer3 (A, sendpkt);
-
-    if (windowfirst == A_nextseqnum) { /*start timer if first packet in window*/
-      starttimer(A,RTT);
-    };
+    starttimer(A,RTT);
+  
+    /*if (windowfirst == A_nextseqnum) { */ /*start timer if first packet in window*/
+     /* starttimer(A,RTT);
+    };*/
 
   }
   /* if blocked,  window is full */
@@ -154,8 +155,12 @@ void A_input(struct pkt packet)
           }
           
           /*stoptimer(A);*/
-          if (windowfirst != A_nextseqnum)
-            starttimer(A, RTT);
+          /*if (windowfirst != A_nextseqnum)
+            starttimer(A, RTT);*/
+
+          /*stoptimer(A);*/
+          if (windowfirst == A_nextseqnum)
+            stoptimer(A);
 
         }
         else

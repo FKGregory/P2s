@@ -66,6 +66,7 @@ static int A_nextseqnum;               /* the next sequence number to be used by
 static float timers[SEQSPACE];         /* array of timers for each packet */
 static int isAcked[SEQSPACE];          /*track whether packet has been acked*/
 static bool recieved[SEQSPACE];         /*track whether packet has been received*/
+static int unacked_min;                 /* the minimum sequence number of unacked packets */
 /*static struct msg window_overflow[MAX_WINDOWFULL]; */ /*arra for dropped packets due to full window*/
 /*static int window_overflow_front; *//* index of the first packet in the window overflow buffer*/
 /*static int window_overflow_rear; *//* index of the last packet in the window overflow buffer*/
@@ -145,6 +146,9 @@ void A_input(struct pkt packet)
       if (!isAcked[packet.acknum]) {
           isAcked[packet.acknum] = 1; /*mark packet as acked*/
           new_ACKs++;
+          if (packet.acknum == unacked_min){
+            unacked_min = (unacked_min + 1) % SEQSPACE;
+          }
 
           if (TRACE > 0)
             printf("----A: ACK %d is not a duplicate\n",packet.acknum);
@@ -161,11 +165,12 @@ void A_input(struct pkt packet)
           }
 
           /*if (windowfirst == A_nextseqnum){*/
+          if(packet.acknum <= unacked_min){
             stoptimer(A);
             /*universalTimer = NOTINUSE; /*start universal timer off*/
             if(total_ACKs_received != sent_packets ){
               starttimer(A, RTT);
-              /*universalTimer = RTT; /*signify timer on*/}
+              /*universalTimer = RTT; /*signify timer on*/}}
         }
         else
           if (TRACE > 0)
@@ -213,6 +218,7 @@ void A_init(void)
 		     so initially this is set to -1
 		   */
   windowcount = 0;
+  unacked_min = 0;
   total_ACKs_received = 0;
   new_ACKs = 0;
       for (i = 0; i < SEQSPACE; i++) {

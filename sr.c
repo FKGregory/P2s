@@ -207,7 +207,7 @@ void B_input(struct pkt packet)
 
   /* if not corrupted and received packet is in order */
   if  (!IsCorrupted(packet)) {
-    if(!recieved[packet.seqnum]) {
+    if((((packet.seqnum - windowfirst + SEQSPACE) % SEQSPACE) < WINDOWSIZE) && (!recieved[packet.seqnum])) {
       recieved[packet.seqnum] = 1;
       bufferB[packet.seqnum] = packet;
       if (TRACE > 0)

@@ -70,6 +70,7 @@ static bool recieved[SEQSPACE];         /*track whether packet has been received
 /*static int window_overflow_front; *//* index of the first packet in the window overflow buffer*/
 /*static int window_overflow_rear; *//* index of the last packet in the window overflow buffer*/
 static int sent_packets; /* number of packets sent*/
+/*static int universalTimer; /* universal timer for all packets*/
 
 
 /* called from layer 5 (application layer), passed the message to be sent to other side */
@@ -104,7 +105,10 @@ void A_output(struct msg message)
       printf("Sending packet %d to layer 3\n", sendpkt.seqnum);
     tolayer3 (A, sendpkt);
     sent_packets++;
-    starttimer(A,RTT);
+    if(sent_packets == 1) { /*start timer if first packet in window*/
+      starttimer(A,RTT);
+      /*universalTimer = RTT; /*signify timer on*/
+    };
   
     /*if (windowfirst == A_nextseqnum) { */ /*start timer if first packet in window*/
      /* starttimer(A,RTT);
@@ -156,12 +160,12 @@ void A_input(struct pkt packet)
           }*/
           }
 
-          /*stoptimer(A);*/
-          if (windowfirst == A_nextseqnum)
+          /*if (windowfirst == A_nextseqnum){*/
             stoptimer(A);
-            if(total_ACKs_received != sent_packets)
+            /*universalTimer = NOTINUSE; /*start universal timer off*/
+            if(total_ACKs_received != sent_packets ){
               starttimer(A, RTT);
-
+              /*universalTimer = RTT; /*signify timer on*/}
         }
         else
           if (TRACE > 0)
@@ -212,6 +216,7 @@ void A_init(void)
       for (i = 0; i < SEQSPACE; i++) {
         isAcked[i] = 1;         /*start things acked*/
         timers[i] = NOTINUSE;    /*start timers off*/
+        /*universalTimer = NOTINUSE; /*start universal timer off*/
     }
     /*window_overflow_rear =0;
     window_overflow_front=0;*/

@@ -27,6 +27,7 @@
                           MUST BE SET TO 6 when submitting assignment */
 #define SEQSPACE 12      /* the min sequence space for GBN must be at least windowsize + 1 */
 #define NOTINUSE (-1)   /* used to fill header fields that are not being used */
+#define MAX_WINDOWFULL 100
 
 /* generic procedure to compute the checksum of a packet.  Used by both sender and receiver
    the simulator will overwrite part of your packet with 'z's.  It will not overwrite your
@@ -65,6 +66,10 @@ static int A_nextseqnum;               /* the next sequence number to be used by
 static float timers[SEQSPACE];         /* array of timers for each packet */
 static int isAcked[SEQSPACE];          /*track whether packet has been acked*/
 static bool recieved[SEQSPACE];         /*track whether packet has been received*/
+static struct msg window_overflow[MAX_WINDOWFULL]; /*arra for dropped packets due to full window*/
+static int window_overflow_front; /* index of the first packet in the window overflow buffer*/
+static int window_overflow_rear; /* index of the last packet in the window overflow buffer*/
+
 
 /* called from layer 5 (application layer), passed the message to be sent to other side */
 void A_output(struct msg message)
@@ -108,6 +113,8 @@ void A_output(struct msg message)
     if (TRACE > 0)
       printf("----A: New message arrives, send window is full\n");
     window_full++;
+    window_overflow[window_overflow_rear] = message;
+    window_overflow_rear = (window_overflow_rear + 1) % MAX_WINDOWFULL; /* store packet in window overflow buffer*/
   }
 }
 
@@ -117,6 +124,7 @@ void A_output(struct msg message)
 */
 void A_input(struct pkt packet)
 {
+  struct msg next_msg;
 
   /* if received ACK is not corrupted */
   if (!IsCorrupted(packet)) {
@@ -138,6 +146,11 @@ void A_input(struct pkt packet)
             timers[windowfirst] = NOTINUSE;
             recieved[windowfirst] = 0;
             windowfirst = (windowfirst + 1) % SEQSPACE;
+            if (window_overflow_front != window_overflow_rear) {
+              next_msg = window_overflow[window_overflow_front];
+              window_overflow_front = (window_overflow_front + 1) % MAX_WINDOWFULL;
+              A_output(next_msg); // Recursive call, but it’ll hit the "send" path now
+          }
           }
           
           /*stoptimer(A);*/
@@ -195,6 +208,8 @@ void A_init(void)
         isAcked[i] = 1;         /*start things acked*/
         timers[i] = NOTINUSE;    /*start timers off*/
     }
+    window_overflow_rear =0;
+    window_overflow_rear=0;
 }
 
 /********* Receiver (B)  variables and procedures ************/

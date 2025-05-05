@@ -139,7 +139,7 @@ void A_input(struct pkt packet)
             windowfirst = (windowfirst + 1) % SEQSPACE;
           }
           
-          stoptimer(A);
+          /*stoptimer(A);*/
           if (windowfirst != A_nextseqnum)
             starttimer(A, RTT);
 

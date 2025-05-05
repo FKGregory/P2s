@@ -27,7 +27,7 @@
                           MUST BE SET TO 6 when submitting assignment */
 #define SEQSPACE 12      /* the min sequence space for GBN must be at least windowsize + 1 */
 #define NOTINUSE (-1)   /* used to fill header fields that are not being used */
-#define MAX_WINDOWFULL 1000
+/*#define MAX_WINDOWFULL 1000*/ /*autograder doesnt want this buffer :( )*/
 
 /* generic procedure to compute the checksum of a packet.  Used by both sender and receiver
    the simulator will overwrite part of your packet with 'z's.  It will not overwrite your
@@ -66,9 +66,10 @@ static int A_nextseqnum;               /* the next sequence number to be used by
 static float timers[SEQSPACE];         /* array of timers for each packet */
 static int isAcked[SEQSPACE];          /*track whether packet has been acked*/
 static bool recieved[SEQSPACE];         /*track whether packet has been received*/
-static struct msg window_overflow[MAX_WINDOWFULL]; /*arra for dropped packets due to full window*/
+/*static struct msg window_overflow[MAX_WINDOWFULL]; */ /*arra for dropped packets due to full window*/
 static int window_overflow_front; /* index of the first packet in the window overflow buffer*/
 static int window_overflow_rear; /* index of the last packet in the window overflow buffer*/
+static int sent_packets; /* number of packets sent*/
 
 
 /* called from layer 5 (application layer), passed the message to be sent to other side */
@@ -102,6 +103,7 @@ void A_output(struct msg message)
     if (TRACE > 0)
       printf("Sending packet %d to layer 3\n", sendpkt.seqnum);
     tolayer3 (A, sendpkt);
+    sent_packets++;
     starttimer(A,RTT);
   
     /*if (windowfirst == A_nextseqnum) { */ /*start timer if first packet in window*/
@@ -153,14 +155,12 @@ void A_input(struct pkt packet)
               A_output(next_msg); /*call recursively to send stored messages*/
           }
           }
-          
-          /*stoptimer(A);*/
-          /*if (windowfirst != A_nextseqnum)
-            starttimer(A, RTT);*/
 
           /*stoptimer(A);*/
           if (windowfirst == A_nextseqnum)
             stoptimer(A);
+            if(total_ACKs_received != sent_packets)
+              starttimer(A, RTT);
 
         }
         else

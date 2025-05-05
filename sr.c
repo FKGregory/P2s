@@ -235,15 +235,15 @@ void B_input(struct pkt packet)
   /* if not corrupted and received packet is in order */
   if  (!IsCorrupted(packet)) {
     if((((packet.seqnum - windowfirst + SEQSPACE) % SEQSPACE) < WINDOWSIZE)) {
-      /*recieved[packet.seqnum] = 1;*/
       bufferB[packet.seqnum] = packet;
       if (TRACE > 0)
       printf("----B: packet %d is correctly received, send ACK!\n",packet.seqnum);
       packets_received++;
-      
+      if(!recieved[packet.seqnum]){
       /* deliver to receiving application */
-      tolayer5(B, packet.payload);
-      
+      tolayer5(B, packet.payload);}
+      recieved[packet.seqnum] = 1;
+
     }
       /* create packet */
   sendpkt.seqnum = NOTINUSE;

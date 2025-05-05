@@ -67,8 +67,8 @@ static float timers[SEQSPACE];         /* array of timers for each packet */
 static int isAcked[SEQSPACE];          /*track whether packet has been acked*/
 static bool recieved[SEQSPACE];         /*track whether packet has been received*/
 /*static struct msg window_overflow[MAX_WINDOWFULL]; */ /*arra for dropped packets due to full window*/
-static int window_overflow_front; /* index of the first packet in the window overflow buffer*/
-static int window_overflow_rear; /* index of the last packet in the window overflow buffer*/
+/*static int window_overflow_front; *//* index of the first packet in the window overflow buffer*/
+/*static int window_overflow_rear; *//* index of the last packet in the window overflow buffer*/
 static int sent_packets; /* number of packets sent*/
 
 
@@ -116,7 +116,7 @@ void A_output(struct msg message)
     if (TRACE > 0)
       printf("----A: New message arrives, send window is full\n");
     window_full++;
-    window_overflow[window_overflow_rear] = message;
+    /*window_overflow[window_overflow_rear] = message;
     window_overflow_rear = (window_overflow_rear + 1) % MAX_WINDOWFULL; /* store packet in window overflow buffer*/
   }
 }
@@ -127,7 +127,7 @@ void A_output(struct msg message)
 */
 void A_input(struct pkt packet)
 {
-  struct msg next_msg;
+  /*struct msg next_msg;*/
 
   /* if received ACK is not corrupted */
   if (!IsCorrupted(packet)) {
@@ -149,11 +149,11 @@ void A_input(struct pkt packet)
             timers[windowfirst] = NOTINUSE;
             recieved[windowfirst] = 0;
             windowfirst = (windowfirst + 1) % SEQSPACE;
-            if (window_overflow_front != window_overflow_rear) {
+            /*if (window_overflow_front != window_overflow_rear) {
               next_msg = window_overflow[window_overflow_front];
               window_overflow_front = (window_overflow_front + 1) % MAX_WINDOWFULL;
-              A_output(next_msg); /*call recursively to send stored messages*/
-          }
+              A_output(next_msg); /*call recursively to send stored messages
+          }*/
           }
 
           /*stoptimer(A);*/
@@ -213,8 +213,8 @@ void A_init(void)
         isAcked[i] = 1;         /*start things acked*/
         timers[i] = NOTINUSE;    /*start timers off*/
     }
-    window_overflow_rear =0;
-    window_overflow_rear=0;
+    /*window_overflow_rear =0;
+    window_overflow_front=0;*/
 }
 
 /********* Receiver (B)  variables and procedures ************/

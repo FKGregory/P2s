@@ -259,12 +259,11 @@ void B_input(struct pkt packet)
   /* send out packet */
   tolayer3 (B, sendpkt);
   }
-  else {
+  /*else {*/
     /* packet is corrupted or out of order resend last ACK */
-    if (TRACE > 0)
-      printf("----B: packet corrupted or not expected sequence number, resend ACK!\n");
+    /*if (TRACE > 0)
+      printf("----B: packet corrupted or not expected sequence number, resend ACK!\n");*/
   }
-}
 
 /* the following routine will be called once (only) before any other */
 /* entity B routines are called. You can use it to do any initialization */

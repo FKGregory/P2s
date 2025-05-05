@@ -100,7 +100,7 @@ void A_output(struct msg message)
 
     if (windowfirst == A_nextseqnum) { /*start timer if first packet in window*/
       starttimer(A,RTT);
-  };
+    };
 
   }
   /* if blocked,  window is full */
@@ -136,6 +136,7 @@ void A_input(struct pkt packet)
 
           while ((windowfirst != A_nextseqnum) && isAcked[windowfirst]) {
             timers[windowfirst] = NOTINUSE;
+            recieved[windowfirst] = 0;
             windowfirst = (windowfirst + 1) % SEQSPACE;
           }
           

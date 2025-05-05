@@ -25,7 +25,7 @@
 #define RTT  16.0       /* round trip time.  MUST BE SET TO 16.0 when submitting assignment */
 #define WINDOWSIZE 6    /* the maximum number of buffered unacked packet
                           MUST BE SET TO 6 when submitting assignment */
-#define SEQSPACE 2*WINDOWSIZE      /* the min sequence space for GBN must be at least windowsize + 1 */
+#define SEQSPACE 12      /* the min sequence space for GBN must be at least windowsize + 1 */
 #define NOTINUSE (-1)   /* used to fill header fields that are not being used */
 
 /* generic procedure to compute the checksum of a packet.  Used by both sender and receiver
@@ -57,8 +57,8 @@ bool IsCorrupted(struct pkt packet)
 
 /********* Sender (A) variables and functions ************/
 
-static struct pkt buffer[WINDOWSIZE];  /* array for storing packets waiting for ACK */
-static struct pkt bufferB [WINDOWSIZE];  /* array for storing packets waiting for ACK */
+static struct pkt buffer[SEQSPACE];  /* array for storing packets waiting for ACK */
+static struct pkt bufferB [SEQSPACE];  /* array for storing packets waiting for ACK */
 static int windowfirst, windowlast;    /* array indexes of the first/last packet awaiting ACK */
 static int windowcount;                /* the number of packets currently awaiting an ACK */
 static int A_nextseqnum;               /* the next sequence number to be used by the sender */
@@ -83,9 +83,18 @@ void A_output(struct msg message)
       sendpkt.payload[i] = message.data[i];
     sendpkt.checksum = ComputeChecksum(sendpkt);
 
-    timers[sendpkt.seqnum] = RTT;
     buffer[sendpkt.seqnum] = sendpkt; /* store packet in buffer*/
-    isAcked[sendpkt.seqnum] = false; /*mark packet as not acked*/
+    isAcked[sendpkt.seqnum] = 0; /*mark packet as not acked*/
+    timers[sendpkt.seqnum] = RTT;
+
+    /* get next sequence number, wrap back to 0 */
+    printf("Anext seq num %d\n", A_nextseqnum);
+
+    A_nextseqnum = (A_nextseqnum + 1) % SEQSPACE;
+    printf("seqspace \n", SEQSPACE);
+    printf("Anext seq num  inced %d\n", A_nextseqnum);
+
+
 
     /* send out packet */
     if (TRACE > 0)
@@ -96,8 +105,6 @@ void A_output(struct msg message)
       starttimer(A,RTT);
   };
 
-    /* get next sequence number, wrap back to 0 */
-    A_nextseqnum = (A_nextseqnum + 1) % SEQSPACE;
   }
   /* if blocked,  window is full */
   else {
@@ -119,18 +126,26 @@ void A_input(struct pkt packet)
     if (TRACE > 0)
       printf("----A: uncorrupted ACK %d is received\n",packet.acknum);
     total_ACKs_received++;
-    stoptimer(A);
 
     /*check in window*/
-    if(((packet.acknum - windowfirst + SEQSPACE) % SEQSPACE) < WINDOWSIZE){
+    if(((packet.acknum - windowfirst + SEQSPACE) % SEQSPACE) < (A_nextseqnum - windowfirst + SEQSPACE) % SEQSPACE){
       /* check if new ACK or duplicate */
       if (!isAcked[packet.acknum]) {
-          isAcked[packet.acknum] = true; /*mark packet as acked*/
+          isAcked[packet.acknum] = 1; /*mark packet as acked*/
           new_ACKs++;
+
           if (TRACE > 0)
             printf("----A: ACK %d is not a duplicate\n",packet.acknum);
-          if(packet.seqnum == windowfirst)
-            windowfirst++;
+
+          while ((windowfirst != A_nextseqnum) && isAcked[windowfirst]) {
+            timers[windowfirst] = NOTINUSE;
+            windowfirst = (windowfirst + 1) % SEQSPACE;
+          }
+          
+          stoptimer(A);
+          if (windowfirst != A_nextseqnum)
+            starttimer(A, RTT);
+
         }
         else
           if (TRACE > 0)
@@ -150,7 +165,7 @@ void A_timerinterrupt(void)
     printf("----A: time out,resend packets!\n");
 
   for(i=0; i<SEQSPACE; i++) {
-    if(isAcked[i] == false && timers[i] != NOTINUSE){
+    if(isAcked[i] == 0 && timers[i] != NOTINUSE){
       timers[i] -= RTT;
       if (timers[i] <= 0) {
         if (TRACE > 0)
@@ -162,7 +177,6 @@ void A_timerinterrupt(void)
     }
   }
 }
-
 
 
 /* the following routine will be called once (only) before any other */
@@ -180,7 +194,7 @@ void A_init(void)
   total_ACKs_received = 0;
   new_ACKs = 0;
       for (i = 0; i < SEQSPACE; i++) {
-        isAcked[i] = true;         /*start things acked*/
+        isAcked[i] = 1;         /*start things acked*/
         timers[i] = NOTINUSE;    /*start timers off*/
     }
 }
@@ -194,31 +208,21 @@ void B_input(struct pkt packet)
   int i;
 
   /* if not corrupted and received packet is in order */
-  if  ( (!IsCorrupted(packet))  && ((packet.seqnum - windowfirst + SEQSPACE) % SEQSPACE) < WINDOWSIZE)  {
-    if(isAcked[packet.acknum] == false){
-      isAcked[packet.acknum] = true; /*mark packet as acked*/
+  if  (!IsCorrupted(packet)) {
+    if(!recieved[packet.seqnum]) {
+      recieved[packet.seqnum] = 1;
+      bufferB[packet.seqnum] = packet;
       if (TRACE > 0)
       printf("----B: packet %d is correctly received, send ACK!\n",packet.seqnum);
-
-      bufferB[packet.seqnum] = packet; /* store packet in buffer*/
-      recieved[packet.seqnum] = true; /*mark packet as received*/
-
-      packets_received++;
-
+      
       /* deliver to receiving application */
       tolayer5(B, packet.payload);
 
-      /* send an ACK for the received packet */
-      sendpkt.acknum = packet.seqnum;
-    }
-  }
-  else {
-    /* packet is corrupted or out of order resend last ACK */
-    if (TRACE > 0)
-      printf("----B: packet corrupted or not expected sequence number, resend ACK!\n");
-  }
+      packets_received++;
 
-  /* create packet */
+    }
+      /* create packet */
+  sendpkt.seqnum = NOTINUSE;
   sendpkt.acknum = packet.seqnum;
 
   /* we don't have any data to send.  fill payload with 0's */
@@ -230,6 +234,12 @@ void B_input(struct pkt packet)
 
   /* send out packet */
   tolayer3 (B, sendpkt);
+  }
+  else {
+    /* packet is corrupted or out of order resend last ACK */
+    if (TRACE > 0)
+      printf("----B: packet corrupted or not expected sequence number, resend ACK!\n");
+  }
 }
 
 /* the following routine will be called once (only) before any other */
@@ -238,7 +248,7 @@ void B_init(void)
 {
   int i;
   for (i = 0; i < SEQSPACE; i++) {
-      recieved[i] = false;
+      recieved[i] = 0;
   }
 }
 

@@ -165,7 +165,7 @@ void A_input(struct pkt packet)
           }
 
           /*if (windowfirst == A_nextseqnum){*/
-          if(packet.acknum <= unacked_min){
+          if(packet.acknum <= unacked_min ||total_ACKs_received == sent_packets){
             stoptimer(A);
             /*universalTimer = NOTINUSE; /*start universal timer off*/
             if(total_ACKs_received != sent_packets ){

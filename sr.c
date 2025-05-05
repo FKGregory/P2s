@@ -149,7 +149,7 @@ void A_input(struct pkt packet)
             if (window_overflow_front != window_overflow_rear) {
               next_msg = window_overflow[window_overflow_front];
               window_overflow_front = (window_overflow_front + 1) % MAX_WINDOWFULL;
-              A_output(next_msg); // Recursive call, but it’ll hit the "send" path now
+              A_output(next_msg); /*call recursively to send stored messages*/
           }
           }
           

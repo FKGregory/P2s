@@ -192,7 +192,9 @@ void A_timerinterrupt(void)
           printf ("---A: resending packet %d\n", buffer[i].seqnum);
         tolayer3(A, buffer[i]);
         packets_resent++;
-        timers[i] = RTT; 
+        timers[i] = RTT;
+        starttimer(A, RTT);
+        break;
       }
     }
   }
@@ -232,17 +234,16 @@ void B_input(struct pkt packet)
 
   /* if not corrupted and received packet is in order */
   if  (!IsCorrupted(packet)) {
-    if((((packet.seqnum - windowfirst + SEQSPACE) % SEQSPACE) < WINDOWSIZE) && (!recieved[packet.seqnum])) {
-      recieved[packet.seqnum] = 1;
+    if((((packet.seqnum - windowfirst + SEQSPACE) % SEQSPACE) < WINDOWSIZE)) {
+      /*recieved[packet.seqnum] = 1;*/
       bufferB[packet.seqnum] = packet;
       if (TRACE > 0)
       printf("----B: packet %d is correctly received, send ACK!\n",packet.seqnum);
+      packets_received++;
       
       /* deliver to receiving application */
       tolayer5(B, packet.payload);
-
-      packets_received++;
-
+      
     }
       /* create packet */
   sendpkt.seqnum = NOTINUSE;
